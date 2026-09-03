@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import ManualBuilder from "./ManualBuilder.vue";
+import HardwareSearch from "./HardwareSearch.vue";
 import { apiUrl } from "./api";
 
 const mode = ref("auto");
@@ -103,9 +104,13 @@ async function buscarConfiguracao() {
       <button :class="{ active: mode === 'manual' }" @click="mode = 'manual'">
         Peça por peça
       </button>
+      <button :class="{ active: mode === 'search' }" @click="mode = 'search'">
+        Pesquisar hardware
+      </button>
     </div>
 
     <ManualBuilder v-if="mode === 'manual'" />
+    <HardwareSearch v-if="mode === 'search'" />
 
     <form v-if="mode === 'auto'" class="budget-form" @submit.prevent="buscarConfiguracao">
       <label for="budget">Orçamento (R$)</label>
