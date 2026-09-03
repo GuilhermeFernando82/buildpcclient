@@ -1,6 +1,8 @@
 <script setup>
 import { reactive, computed } from "vue";
-import { apiUrl } from "./api";
+import PartPicker from "./PartPicker.vue";
+
+const MAX_RAM = 4;
 
 const CATEGORIES = [
   { key: "gpu", label: "Placa de Vídeo", icon: "🖥️", defaultTerm: "placa de video" },
@@ -13,19 +15,45 @@ const CATEGORIES = [
   { key: "cooler", label: "Water Cooler", icon: "❄️", defaultTerm: "water cooler" },
 ];
 
+const singleCategories = CATEGORIES.filter((c) => c.key !== "ram");
+const ramCategory = CATEGORIES.find((c) => c.key === "ram");
+
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 const selections = reactive({});
-const panels = reactive({});
-for (const cat of CATEGORIES) {
-  panels[cat.key] = { open: false, query: cat.defaultTerm, results: [], loading: false, error: "" };
+for (const cat of singleCategories) selections[cat.key] = null;
+
+// Até 4 pentes de RAM — cada posição do array é um pente (ou null se ainda
+// não escolhido). Começa com 1 slot visível; "Adicionar outro pente" revela
+// mais, até o limite.
+const ramSticks = reactive([null]);
+
+function addRamSlot() {
+  if (ramSticks.length < MAX_RAM) ramSticks.push(null);
 }
 
-const total = computed(() =>
-  Object.values(selections).reduce((sum, p) => sum + (p ? p.price : 0), 0)
-);
+function removeRamSlot(i) {
+  if (ramSticks.length > 1) {
+    ramSticks.splice(i, 1);
+  } else {
+    ramSticks[0] = null;
+  }
+}
 
-const selectedCount = computed(() => Object.values(selections).filter(Boolean).length);
+const total = computed(() => {
+  const singleTotal = singleCategories.reduce(
+    (sum, c) => sum + (selections[c.key] ? selections[c.key].price : 0),
+    0
+  );
+  const ramTotal = ramSticks.reduce((sum, p) => sum + (p ? p.price : 0), 0);
+  return singleTotal + ramTotal;
+});
+
+const selectedCount = computed(() => {
+  const singleCount = singleCategories.filter((c) => selections[c.key]).length;
+  const ramCount = ramSticks.some(Boolean) ? 1 : 0;
+  return singleCount + ramCount;
+});
 
 function detectSocket(name = "") {
   const n = name.toUpperCase();
@@ -50,7 +78,6 @@ const compatWarnings = computed(() => {
   const warnings = [];
   const cpu = selections.cpu;
   const mb = selections.motherboard;
-  const ram = selections.ram;
 
   if (cpu && mb) {
     const cpuSocket = detectSocket(cpu.name);
@@ -61,53 +88,24 @@ const compatWarnings = computed(() => {
       );
     }
   }
-  if (mb && ram) {
+
+  if (mb) {
     const mbDdr = detectDdr(mb.name);
-    const ramDdr = detectDdr(ram.name);
-    if (mbDdr && ramDdr && mbDdr !== ramDdr) {
-      warnings.push(
-        `Placa-mãe (${mbDdr}) e memória RAM (${ramDdr}) podem não ser compatíveis.`
-      );
+    if (mbDdr) {
+      const mismatched = ramSticks.filter((p) => {
+        const ddr = p && detectDdr(p.name);
+        return ddr && ddr !== mbDdr;
+      });
+      if (mismatched.length) {
+        warnings.push(
+          `Placa-mãe (${mbDdr}) e ${mismatched.length > 1 ? "algumas memórias RAM" : "a memória RAM"} podem não ser compatíveis.`
+        );
+      }
     }
   }
+
   return warnings;
 });
-
-async function search(key) {
-  const panel = panels[key];
-  const q = panel.query.trim();
-  if (!q) return;
-
-  panel.loading = true;
-  panel.error = "";
-  try {
-    const resp = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(q)}`));
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || "Falha na busca.");
-    panel.results = data.products;
-  } catch (err) {
-    panel.error = err.message || "Não foi possível buscar agora.";
-    panel.results = [];
-  } finally {
-    panel.loading = false;
-  }
-}
-
-function togglePanel(key) {
-  panels[key].open = !panels[key].open;
-  if (panels[key].open && panels[key].results.length === 0 && !panels[key].loading) {
-    search(key);
-  }
-}
-
-function selectProduct(key, product) {
-  selections[key] = product;
-  panels[key].open = false;
-}
-
-function removeSelection(key) {
-  selections[key] = null;
-}
 </script>
 
 <template>
@@ -128,79 +126,37 @@ function removeSelection(key) {
     </ul>
 
     <div class="slots">
-      <div v-for="cat in CATEGORIES" :key="cat.key" class="slot">
+      <div v-for="cat in singleCategories" :key="cat.key" class="slot">
         <div class="slot-header">
           <span class="slot-icon">{{ cat.icon }}</span>
           <span class="slot-label">{{ cat.label }}</span>
         </div>
+        <PartPicker v-model="selections[cat.key]" :category="cat.key" :default-term="cat.defaultTerm" />
+      </div>
 
-        <div v-if="selections[cat.key]" class="picked">
-          <img
-            v-if="selections[cat.key].image"
-            :src="selections[cat.key].image"
-            :alt="selections[cat.key].name"
-            class="picked-image"
-            loading="lazy"
+      <div class="slot slot-ram">
+        <div class="slot-header">
+          <span class="slot-icon">{{ ramCategory.icon }}</span>
+          <span class="slot-label">{{ ramCategory.label }}</span>
+          <span class="slot-count">{{ ramSticks.filter(Boolean).length }}/{{ MAX_RAM }}</span>
+        </div>
+
+        <div v-for="(stick, i) in ramSticks" :key="i" class="ram-stick">
+          <div v-if="ramSticks.length > 1" class="ram-stick-header">
+            <span>Pente {{ i + 1 }}</span>
+            <button class="link-btn danger" @click="removeRamSlot(i)">Remover pente</button>
+          </div>
+          <PartPicker
+            v-model="ramSticks[i]"
+            category="ram"
+            :default-term="ramCategory.defaultTerm"
+            :search-label="ramSticks.length > 1 ? `Pesquisar pente ${i + 1}` : 'Pesquisar'"
           />
-          <p class="picked-name">
-            <a :href="selections[cat.key].url" target="_blank" rel="noopener noreferrer">{{
-              selections[cat.key].name
-            }}</a>
-          </p>
-          <div class="picked-footer">
-            <span class="picked-store">{{ selections[cat.key].store }}</span>
-            <span class="picked-price">{{ currency.format(selections[cat.key].price) }}</span>
-          </div>
-          <div class="picked-actions">
-            <button class="link-btn" @click="togglePanel(cat.key)">Trocar</button>
-            <button class="link-btn danger" @click="removeSelection(cat.key)">Remover</button>
-          </div>
         </div>
 
-        <button v-else class="pick-btn" @click="togglePanel(cat.key)">
-          {{ panels[cat.key].open ? "Fechar busca" : "Pesquisar" }}
+        <button v-if="ramSticks.length < MAX_RAM" class="add-ram-btn" @click="addRamSlot">
+          + Adicionar outro pente ({{ ramSticks.length }}/{{ MAX_RAM }})
         </button>
-
-        <div v-if="panels[cat.key].open" class="search-panel">
-          <div class="search-row">
-            <input
-              v-model="panels[cat.key].query"
-              type="text"
-              placeholder="O que você procura?"
-              @keyup.enter="search(cat.key)"
-            />
-            <button @click="search(cat.key)" :disabled="panels[cat.key].loading">
-              {{ panels[cat.key].loading ? "..." : "Buscar" }}
-            </button>
-          </div>
-
-          <p v-if="panels[cat.key].error" class="search-error">{{ panels[cat.key].error }}</p>
-          <p v-if="panels[cat.key].loading" class="search-status">Buscando na Kabum e na Terabyte...</p>
-
-          <ul v-if="panels[cat.key].results.length" class="results-list">
-            <li
-              v-for="p in panels[cat.key].results"
-              :key="p.store + p.url"
-              class="result-item"
-              @click="selectProduct(cat.key, p)"
-            >
-              <img v-if="p.image" :src="p.image" :alt="p.name" loading="lazy" />
-              <div class="result-info">
-                <p class="result-name">{{ p.name }}</p>
-                <div class="result-meta">
-                  <span class="result-store">{{ p.store }}</span>
-                  <span class="result-price">{{ currency.format(p.price) }}</span>
-                </div>
-              </div>
-            </li>
-          </ul>
-          <p
-            v-else-if="!panels[cat.key].loading && !panels[cat.key].error"
-            class="search-status"
-          >
-            Nenhum resultado ainda. Ajuste o termo e busque de novo.
-          </p>
-        </div>
       </div>
     </div>
   </div>
@@ -288,72 +244,36 @@ function removeSelection(key) {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
+  flex: 1;
 }
 
-.pick-btn {
-  width: 100%;
+.slot-count {
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: rgba(88, 166, 255, 0.12);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.slot-ram {
+  grid-column: span 2;
+}
+
+.ram-stick {
+  border: 1px solid var(--border);
+  border-radius: 10px;
   padding: 0.7rem;
-  border-radius: 8px;
-  border: 1px dashed var(--border);
-  background: transparent;
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 0.9rem;
+  margin-bottom: 0.7rem;
 }
 
-.pick-btn:hover {
-  border-color: var(--accent);
-}
-
-.picked-image {
-  width: 100%;
-  height: 100px;
-  object-fit: contain;
-  background: var(--panel-alt);
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-}
-
-.picked-name {
-  font-size: 0.85rem;
-  line-height: 1.3;
-  margin: 0 0 0.5rem;
-  min-height: 2.3em;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.picked-name a {
-  color: var(--text);
-  text-decoration: none;
-}
-
-.picked-name a:hover {
-  color: var(--accent);
-}
-
-.picked-footer {
+.ram-stick-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
   margin-bottom: 0.5rem;
-}
-
-.picked-store {
+  font-size: 0.78rem;
   color: var(--text-dim);
-}
-
-.picked-price {
-  font-weight: 700;
-  color: var(--accent);
-}
-
-.picked-actions {
-  display: flex;
-  gap: 0.75rem;
 }
 
 .link-btn {
@@ -365,126 +285,22 @@ function removeSelection(key) {
   padding: 0;
 }
 
-.link-btn:hover {
-  color: var(--accent);
-}
-
 .link-btn.danger:hover {
   color: var(--danger);
 }
 
-.search-panel {
-  margin-top: 0.8rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.8rem;
-}
-
-.search-row {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-}
-
-.search-row input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.45rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--panel-alt);
-  color: var(--text);
-  font-size: 0.85rem;
-}
-
-.search-row button {
-  padding: 0.45rem 0.8rem;
-  border-radius: 6px;
-  border: none;
-  background: var(--accent);
-  color: #0d1117;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.search-row button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.search-error {
-  color: var(--danger);
-  font-size: 0.78rem;
-  margin: 0 0 0.5rem;
-}
-
-.search-status {
-  color: var(--text-dim);
-  font-size: 0.78rem;
-  margin: 0;
-}
-
-.results-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 340px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.result-item {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  padding: 0.4rem;
+.add-ram-btn {
+  width: 100%;
+  padding: 0.6rem;
   border-radius: 8px;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.result-item:hover {
-  background: var(--panel-alt);
-  border-color: var(--accent);
-}
-
-.result-item img {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  background: var(--panel-alt);
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-
-.result-info {
-  min-width: 0;
-}
-
-.result-name {
-  font-size: 0.78rem;
-  line-height: 1.25;
-  margin: 0 0 0.25rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.result-meta {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-}
-
-.result-store {
-  color: var(--text-dim);
-}
-
-.result-price {
+  border: 1px dashed var(--border);
+  background: transparent;
   color: var(--accent);
-  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.add-ram-btn:hover {
+  border-color: var(--accent);
 }
 </style>
