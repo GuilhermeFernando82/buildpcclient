@@ -1,3 +1,5 @@
+![Montador de PC](./banner.svg)
+
 # buildpcclient
 
 Frontend (Vue 3 + Vite) do Montador de PC. Consome a API do
