@@ -17,6 +17,8 @@ const CATEGORY_ICONS = {
 };
 
 const budgetInput = ref("6000");
+const profile = ref("gpu"); // "gpu" (prioriza placa de vídeo) | "balanced"
+const gpuBrand = ref(""); // "" (qualquer) | "nvidia" | "amd"
 const loading = ref(false);
 const error = ref("");
 const result = ref(null);
@@ -45,7 +47,9 @@ async function buscarConfiguracao() {
   result.value = null;
 
   try {
-    const resp = await fetch(apiUrl(`/api/build?budget=${budget}`));
+    const params = new URLSearchParams({ budget, profile: profile.value });
+    if (gpuBrand.value) params.set("gpuBrand", gpuBrand.value);
+    const resp = await fetch(apiUrl(`/api/build?${params}`));
     const data = await resp.json();
     if (!resp.ok) {
       throw new Error(data.error || "Falha ao buscar configuração.");
@@ -96,6 +100,44 @@ async function buscarConfiguracao() {
           {{ loading ? "Buscando..." : "Buscar melhor configuração" }}
         </button>
       </div>
+
+      <div class="options-row">
+        <div class="option-group">
+          <span class="option-label">Prioridade</span>
+          <div class="segmented">
+            <button type="button" :class="{ active: profile === 'gpu' }" @click="profile = 'gpu'">
+              Priorizar GPU
+            </button>
+            <button
+              type="button"
+              :class="{ active: profile === 'balanced' }"
+              @click="profile = 'balanced'"
+            >
+              Equilibrado
+            </button>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <span class="option-label">Marca da GPU</span>
+          <div class="segmented">
+            <button type="button" :class="{ active: gpuBrand === '' }" @click="gpuBrand = ''">
+              Qualquer
+            </button>
+            <button
+              type="button"
+              :class="{ active: gpuBrand === 'nvidia' }"
+              @click="gpuBrand = 'nvidia'"
+            >
+              NVIDIA
+            </button>
+            <button type="button" :class="{ active: gpuBrand === 'amd' }" @click="gpuBrand = 'amd'">
+              AMD
+            </button>
+          </div>
+        </div>
+      </div>
+
       <p v-if="error" class="error-msg">{{ error }}</p>
     </form>
 
@@ -287,6 +329,55 @@ async function buscarConfiguracao() {
   color: var(--danger);
   font-size: 0.85rem;
   margin: 0.75rem 0 0;
+}
+
+.options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+
+.option-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.option-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented button {
+  flex: 1;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  background: var(--panel-alt);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-right: 1px solid var(--border);
+}
+
+.segmented button:last-child {
+  border-right: none;
+}
+
+.segmented button.active {
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--accent);
 }
 
 .status {
