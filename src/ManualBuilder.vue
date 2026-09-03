@@ -256,8 +256,12 @@ const compatWarnings = computed(() => {
   padding: 0.1rem 0.5rem;
 }
 
-.slot-ram {
-  grid-column: span 2;
+/* Só ocupa 2 colunas quando o grid realmente tem 2+ colunas pra dar —
+   em telas estreitas (1 coluna) isso ficaria sobrando espaço à toa. */
+@media (min-width: 560px) {
+  .slot-ram {
+    grid-column: span 2;
+  }
 }
 
 .ram-stick {
@@ -302,5 +306,17 @@ const compatWarnings = computed(() => {
 
 .add-ram-btn:hover {
   border-color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .manual-summary {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem;
+  }
+
+  .slot {
+    padding: 0.85rem;
+  }
 }
 </style>

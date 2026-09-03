@@ -486,4 +486,38 @@ async function buscarConfiguracao() {
   color: var(--warn);
   margin-top: 0;
 }
+
+@media (max-width: 640px) {
+  .page {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .hero h1 {
+    font-size: 1.6rem;
+  }
+
+  .mode-switch {
+    flex-wrap: wrap;
+  }
+
+  .budget-form {
+    padding: 1.1rem;
+  }
+
+  .input-row {
+    flex-direction: column;
+  }
+
+  .input-row button {
+    width: 100%;
+  }
+
+  .summary {
+    padding: 1.1rem;
+  }
+
+  .item-card {
+    padding: 0.85rem;
+  }
+}
 </style>
