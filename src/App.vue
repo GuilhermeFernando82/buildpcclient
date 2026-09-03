@@ -92,8 +92,9 @@ async function buscarConfiguracao() {
     <header class="hero">
       <h1>Montador de PC</h1>
       <p class="subtitle">
-        Informe seu orçamento e a aplicação busca em tempo real, na Kabum e na
-        Terabyte, a melhor configuração de PC compatível dentro desse valor.
+        Informe seu orçamento e a aplicação busca em tempo real, na Kabum, na
+        Terabyte e na Pato Loco, a melhor configuração de PC compatível
+        dentro desse valor.
       </p>
     </header>
 
@@ -239,7 +240,7 @@ async function buscarConfiguracao() {
 
     <section v-if="mode === 'auto' && loading" class="status">
       <div class="spinner"></div>
-      <p>Consultando preços em tempo real na Kabum e na Terabyte...</p>
+      <p>Consultando preços em tempo real na Kabum, na Terabyte e na Pato Loco...</p>
     </section>
 
     <section v-if="mode === 'auto' && result" class="results">
@@ -311,7 +312,7 @@ async function buscarConfiguracao() {
       </p>
       <p class="fetched-at">
         Preços buscados em {{ new Date(result.fetchedAt).toLocaleString("pt-BR") }} ·
-        Fontes: Kabum, Terabyte
+        Fontes: Kabum, Terabyte, Pato Loco
       </p>
     </section>
   </div>

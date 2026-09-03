@@ -99,7 +99,7 @@ function remove() {
       </div>
 
       <p v-if="panel.error" class="search-error">{{ panel.error }}</p>
-      <p v-if="panel.loading" class="search-status">Buscando na Kabum e na Terabyte...</p>
+      <p v-if="panel.loading" class="search-status">Buscando na Kabum, na Terabyte e na Pato Loco...</p>
 
       <ul v-if="panel.results.length" class="results-list">
         <li

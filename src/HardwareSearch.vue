@@ -98,7 +98,7 @@ function buildChart(points) {
     </form>
 
     <p v-if="error" class="error-msg">{{ error }}</p>
-    <p v-if="loading" class="status-msg">Buscando na Kabum e na Terabyte...</p>
+    <p v-if="loading" class="status-msg">Buscando na Kabum, na Terabyte e na Pato Loco...</p>
 
     <div v-if="results">
       <p class="results-count">
