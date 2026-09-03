@@ -19,6 +19,20 @@ const CATEGORY_ICONS = {
 const budgetInput = ref("6000");
 const profile = ref("gpu"); // "gpu" (prioriza placa de vídeo) | "balanced"
 const gpuBrand = ref(""); // "" (qualquer) | "nvidia" | "amd"
+const cpuBrand = ref(""); // "" (qualquer) | "intel" | "amd"
+const ramGb = ref("16");
+const dualChannel = ref(false);
+const storageGb = ref(""); // "" = sem preferência de capacidade
+
+const RAM_OPTIONS = [8, 16, 32, 64];
+const STORAGE_OPTIONS = [
+  { value: "", label: "Qualquer" },
+  { value: "240", label: "240GB+" },
+  { value: "480", label: "480GB+" },
+  { value: "1000", label: "1TB+" },
+  { value: "2000", label: "2TB+" },
+];
+
 const loading = ref(false);
 const error = ref("");
 const result = ref(null);
@@ -47,8 +61,15 @@ async function buscarConfiguracao() {
   result.value = null;
 
   try {
-    const params = new URLSearchParams({ budget, profile: profile.value });
+    const params = new URLSearchParams({
+      budget,
+      profile: profile.value,
+      ramGb: ramGb.value,
+      dualChannel: dualChannel.value ? "true" : "false",
+    });
     if (gpuBrand.value) params.set("gpuBrand", gpuBrand.value);
+    if (cpuBrand.value) params.set("cpuBrand", cpuBrand.value);
+    if (storageGb.value) params.set("storageGb", storageGb.value);
     const resp = await fetch(apiUrl(`/api/build?${params}`));
     const data = await resp.json();
     if (!resp.ok) {
@@ -135,6 +156,47 @@ async function buscarConfiguracao() {
               AMD
             </button>
           </div>
+        </div>
+
+        <div class="option-group">
+          <span class="option-label">Marca do processador</span>
+          <div class="segmented">
+            <button type="button" :class="{ active: cpuBrand === '' }" @click="cpuBrand = ''">
+              Qualquer
+            </button>
+            <button
+              type="button"
+              :class="{ active: cpuBrand === 'intel' }"
+              @click="cpuBrand = 'intel'"
+            >
+              Intel
+            </button>
+            <button type="button" :class="{ active: cpuBrand === 'amd' }" @click="cpuBrand = 'amd'">
+              AMD
+            </button>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <span class="option-label">Memória RAM</span>
+          <div class="ram-option-row">
+            <select v-model="ramGb" class="select-input">
+              <option v-for="gb in RAM_OPTIONS" :key="gb" :value="String(gb)">{{ gb }}GB</option>
+            </select>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="dualChannel" />
+              Dual channel
+            </label>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <span class="option-label">Armazenamento (SSD)</span>
+          <select v-model="storageGb" class="select-input select-full">
+            <option v-for="opt in STORAGE_OPTIONS" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
         </div>
       </div>
 
@@ -378,6 +440,41 @@ async function buscarConfiguracao() {
 .segmented button.active {
   background: rgba(88, 166, 255, 0.15);
   color: var(--accent);
+}
+
+.select-input {
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.select-full {
+  width: 100%;
+}
+
+.ram-option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.checkbox-label input {
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .status {
