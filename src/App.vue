@@ -320,9 +320,9 @@ async function buscarConfiguracao() {
 
 <style scoped>
 .page {
-  max-width: 960px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 2.5rem 1.25rem 4rem;
+  padding: 2.5rem 2rem 4rem;
 }
 
 .hero {
@@ -375,7 +375,7 @@ async function buscarConfiguracao() {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
-  max-width: 480px;
+  max-width: 720px;
   margin: 0 auto 2rem;
 }
 
