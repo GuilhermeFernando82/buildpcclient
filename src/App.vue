@@ -23,6 +23,7 @@ const cpuBrand = ref(""); // "" (qualquer) | "intel" | "amd"
 const ramGb = ref("16");
 const dualChannel = ref(false);
 const storageGb = ref(""); // "" = sem preferência de capacidade
+const storageType = ref(""); // "" (qualquer) | "nvme" | "sata"
 
 const RAM_OPTIONS = [8, 16, 32, 64];
 const STORAGE_OPTIONS = [
@@ -70,6 +71,7 @@ async function buscarConfiguracao() {
     if (gpuBrand.value) params.set("gpuBrand", gpuBrand.value);
     if (cpuBrand.value) params.set("cpuBrand", cpuBrand.value);
     if (storageGb.value) params.set("storageGb", storageGb.value);
+    if (storageType.value) params.set("storageType", storageType.value);
     const resp = await fetch(apiUrl(`/api/build?${params}`));
     const data = await resp.json();
     if (!resp.ok) {
@@ -197,6 +199,33 @@ async function buscarConfiguracao() {
               {{ opt.label }}
             </option>
           </select>
+        </div>
+
+        <div class="option-group">
+          <span class="option-label">Tipo de SSD</span>
+          <div class="segmented">
+            <button
+              type="button"
+              :class="{ active: storageType === '' }"
+              @click="storageType = ''"
+            >
+              Qualquer
+            </button>
+            <button
+              type="button"
+              :class="{ active: storageType === 'nvme' }"
+              @click="storageType = 'nvme'"
+            >
+              NVMe
+            </button>
+            <button
+              type="button"
+              :class="{ active: storageType === 'sata' }"
+              @click="storageType = 'sata'"
+            >
+              SATA
+            </button>
+          </div>
         </div>
       </div>
 
