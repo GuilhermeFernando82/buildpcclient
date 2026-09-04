@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import ManualBuilder from "./ManualBuilder.vue";
 import HardwareSearch from "./HardwareSearch.vue";
+import BottleneckCalculator from "./BottleneckCalculator.vue";
 import { apiUrl } from "./api";
 
 const mode = ref("auto");
@@ -110,10 +111,14 @@ async function buscarConfiguracao() {
       <button :class="{ active: mode === 'search' }" @click="mode = 'search'">
         Pesquisar hardware
       </button>
+      <button :class="{ active: mode === 'bottleneck' }" @click="mode = 'bottleneck'">
+        Calcular gargalo
+      </button>
     </div>
 
     <ManualBuilder v-if="mode === 'manual'" />
     <HardwareSearch v-if="mode === 'search'" />
+    <BottleneckCalculator v-if="mode === 'bottleneck'" />
 
     <form v-if="mode === 'auto'" class="budget-form" @submit.prevent="buscarConfiguracao">
       <label for="budget">Orçamento (R$)</label>
