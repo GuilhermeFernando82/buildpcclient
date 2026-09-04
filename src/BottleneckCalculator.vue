@@ -9,10 +9,26 @@ const loading = ref(false);
 const error = ref("");
 const result = ref(null);
 
-const LIMIT_LABELS = {
-  cpu: "Gargalo do processador",
-  gpu: "Gargalo da placa de vídeo",
-  balanced: "Dupla equilibrada",
+// Só o gargalo de PROCESSADOR é problema — é o único que joga fora potencial
+// da placa de vídeo. A placa ser o limite significa que ela está 100% usada,
+// que é o cenário ideal em jogos.
+const VERDICTS = {
+  "cpu-high": {
+    title: "Gargalo do processador",
+    detail: "O processador não acompanha a placa e desperdiça parte dela.",
+  },
+  "cpu-mild": {
+    title: "Gargalo leve do processador",
+    detail: "O processador segura um pouco a placa, mas o impacto é pequeno.",
+  },
+  balanced: {
+    title: "Dupla equilibrada",
+    detail: "As duas peças andam juntas, praticamente sem desperdício.",
+  },
+  "gpu-bound": {
+    title: "Sem gargalo de processador",
+    detail: "A placa de vídeo é 100% aproveitada — é o cenário ideal.",
+  },
 };
 
 async function calcular() {
@@ -100,18 +116,29 @@ function barPct(value, res) {
             <span class="res-fps">~{{ res.estimatedFps }} FPS</span>
           </div>
 
-          <div class="verdict" :class="res.limitedBy">
-            <span class="verdict-pct">{{ res.bottleneckPercent }}%</span>
-            <span class="verdict-text">{{ LIMIT_LABELS[res.limitedBy] }}</span>
+          <div class="verdict" :class="res.verdict">
+            <span v-if="res.cpuBottleneck" class="verdict-pct">
+              {{ res.cpuBottleneck }}%
+            </span>
+            <span v-else class="verdict-pct">✓</span>
+            <span class="verdict-text">{{ VERDICTS[res.verdict].title }}</span>
           </div>
+
+          <p class="verdict-detail">
+            {{ VERDICTS[res.verdict].detail }}
+            <template v-if="res.cpuHeadroom >= 10">
+              O processador ainda tem {{ res.cpuHeadroom }}% de folga para uma
+              placa mais forte.
+            </template>
+          </p>
 
           <div class="bars">
             <div class="bar-row">
               <span class="bar-name">CPU</span>
               <div class="bar-track">
                 <div
-                  class="bar-fill cpu"
-                  :class="{ limiter: res.limitedBy === 'cpu' }"
+                  class="bar-fill"
+                  :class="res.verdict"
                   :style="{ width: barPct(res.cpuCeiling, res) + '%' }"
                 ></div>
               </div>
@@ -121,8 +148,7 @@ function barPct(value, res) {
               <span class="bar-name">GPU</span>
               <div class="bar-track">
                 <div
-                  class="bar-fill gpu"
-                  :class="{ limiter: res.limitedBy === 'gpu' }"
+                  class="bar-fill ok"
                   :style="{ width: barPct(res.gpuCeiling, res) + '%' }"
                 ></div>
               </div>
@@ -150,8 +176,15 @@ function barPct(value, res) {
           carga dele (lógica do jogo, física, draw calls) não depende da
           quantidade de pixels. Já o da placa de vídeo cai conforme a resolução
           sobe: na média das reviews, 1440p entrega cerca de 70% do FPS de
-          1080p, e 4K cerca de 42%. Por isso o mesmo par costuma ter gargalo de
-          processador em 1080p e de placa de vídeo em 4K.
+          1080p, e 4K cerca de 42%.
+        </p>
+        <p>
+          Por isso o gargalo mostrado é sempre o do <strong>processador</strong>:
+          ele é o único que representa desperdício, porque significa que a placa
+          entregaria mais FPS e a CPU não deixa. Quanto maior a resolução, menor
+          esse desperdício — em 4K a própria placa vira o limite e o gargalo
+          costuma zerar. Quando isso acontece não é problema: quer dizer que a
+          placa está sendo 100% aproveitada, que é o cenário ideal em jogos.
         </p>
         <p class="disclaimer">
           É uma estimativa de tendência por modelo, não um teste real: o gargalo
@@ -267,22 +300,30 @@ function barPct(value, res) {
   margin-bottom: 0.85rem;
 }
 
-.verdict.cpu {
-  background: rgba(210, 153, 34, 0.12);
-  border: 1px solid var(--warn);
-  color: var(--warn);
-}
-
-.verdict.gpu {
+.verdict.cpu-high {
   background: rgba(248, 81, 73, 0.12);
   border: 1px solid var(--danger);
   color: var(--danger);
 }
 
-.verdict.balanced {
+.verdict.cpu-mild {
+  background: rgba(210, 153, 34, 0.12);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+}
+
+.verdict.balanced,
+.verdict.gpu-bound {
   background: rgba(63, 185, 80, 0.12);
   border: 1px solid var(--accent-2);
   color: var(--accent-2);
+}
+
+.verdict-detail {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+  margin: 0 0 0.85rem;
 }
 
 .verdict-pct {
@@ -327,20 +368,18 @@ function barPct(value, res) {
 .bar-fill {
   height: 100%;
   border-radius: 5px;
-  background: var(--border);
+  background: var(--accent-2);
   transition: width 0.3s ease;
 }
 
-.bar-fill.limiter.cpu {
-  background: var(--warn);
-}
-
-.bar-fill.limiter.gpu {
+/* Só a barra da CPU muda de cor, e só quando ela é o gargalo: a GPU ser a
+   peça mais curta é o cenário saudável, não deve aparecer como alerta. */
+.bar-fill.cpu-high {
   background: var(--danger);
 }
 
-.bar-fill:not(.limiter) {
-  background: var(--accent-2);
+.bar-fill.cpu-mild {
+  background: var(--warn);
 }
 
 .bar-value {
