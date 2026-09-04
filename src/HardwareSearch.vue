@@ -116,7 +116,7 @@ function buildChart(points) {
             <img v-if="p.image" :src="p.image" :alt="p.name" loading="lazy" />
             <div class="result-info">
               <p class="result-name">
-                <a :href="p.url" target="_blank" rel="noopener noreferrer">{{ p.name }}</a>
+                <a :href="p.url" target="_blank" rel="sponsored noopener noreferrer">{{ p.name }}</a>
               </p>
               <div class="result-meta">
                 <span class="result-store">{{ p.store }}</span>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import ManualBuilder from "./ManualBuilder.vue";
 import HardwareSearch from "./HardwareSearch.vue";
 import BottleneckCalculator from "./BottleneckCalculator.vue";
@@ -44,6 +44,21 @@ const result = ref(null);
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
+});
+
+// O aviso de link de afiliado é obrigatório nos programas (e no CONAR), mas
+// só faz sentido quando algum está de fato ativo — quem decide é o backend,
+// que é onde os códigos ficam configurados.
+const affiliateActive = ref(false);
+
+onMounted(async () => {
+  try {
+    const resp = await fetch(apiUrl("/api/health"));
+    if (resp.ok) affiliateActive.value = Boolean((await resp.json()).affiliate);
+  } catch {
+    // Sem resposta do backend o aviso simplesmente não aparece: ele existe
+    // para ser honesto sobre monetização, não é essencial pra usar o app.
+  }
 });
 
 const isOverBudget = computed(() => result.value && result.value.remaining < 0);
@@ -306,7 +321,7 @@ async function buscarConfiguracao() {
           :class="{ empty: !item.product }"
           :href="item.product?.url"
           target="_blank"
-          rel="noopener noreferrer"
+          rel="sponsored noopener noreferrer"
         >
           <div class="item-header">
             <span class="item-icon">{{ CATEGORY_ICONS[item.key] || "🔧" }}</span>
@@ -341,6 +356,13 @@ async function buscarConfiguracao() {
         Fontes: Kabum, Terabyte, Pato Loco
       </p>
     </section>
+
+    <footer v-if="affiliateActive" class="affiliate-note">
+      Alguns links para as lojas são de afiliado: se você comprar por eles, o
+      site pode receber uma comissão, sem custo nenhum a mais para você. Isso
+      não influencia os preços mostrados nem a ordem dos resultados — a
+      montagem sempre busca a melhor opção pelo preço.
+    </footer>
   </div>
 </template>
 
@@ -734,6 +756,17 @@ async function buscarConfiguracao() {
 .store-issues {
   color: var(--warn);
   margin-top: 0;
+}
+
+.affiliate-note {
+  margin: 2.5rem auto 0;
+  max-width: 720px;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
 }
 
 @media (max-width: 640px) {

@@ -69,7 +69,9 @@ function remove() {
         loading="lazy"
       />
       <p class="picked-name">
-        <a :href="modelValue.url" target="_blank" rel="noopener noreferrer">{{ modelValue.name }}</a>
+        <a :href="modelValue.url" target="_blank" rel="sponsored noopener noreferrer">{{
+          modelValue.name
+        }}</a>
       </p>
       <div class="picked-footer">
         <span class="picked-store">{{ modelValue.store }}</span>
