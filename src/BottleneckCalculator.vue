@@ -166,17 +166,18 @@ function barPct(value, res) {
       <details class="method">
         <summary>Como esse cálculo é feito</summary>
         <p>
-          Cada modelo de processador e placa de vídeo tem um índice de
-          desempenho relativo em jogos (0 a 100), curado a partir de médias de
-          benchmarks públicos. Desse índice sai o teto aproximado de FPS que a
-          peça sustenta sozinha, e o gargalo é a diferença entre os dois tetos.
+          Cada modelo tem um teto de FPS médio curado a partir de médias de
+          reviews públicas, numa suíte de jogos AAA em preset alto/ultra, sem
+          upscaling. O gargalo é a diferença entre os dois tetos — por isso os
+          números aqui são FPS de jogo pesado, e não os de um competitivo leve,
+          onde tudo roda bem mais alto.
         </p>
         <p>
           O teto do processador é praticamente o mesmo nas três resoluções — a
           carga dele (lógica do jogo, física, draw calls) não depende da
-          quantidade de pixels. Já o da placa de vídeo cai conforme a resolução
-          sobe: na média das reviews, 1440p entrega cerca de 70% do FPS de
-          1080p, e 4K cerca de 42%.
+          quantidade de pixels. Já o da placa cai conforme a resolução sobe, aí
+          sim proporcional aos pixels: cada placa tem os três valores medidos,
+          porque as de topo seguram 4K melhor que as de entrada.
         </p>
         <p>
           Por isso o gargalo mostrado é sempre o do <strong>processador</strong>:
