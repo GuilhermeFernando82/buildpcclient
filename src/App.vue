@@ -25,6 +25,7 @@ const ramGb = ref("16");
 const dualChannel = ref(false);
 const storageGb = ref(""); // "" = sem preferência de capacidade
 const storageType = ref(""); // "" (qualquer) | "nvme" | "sata"
+const ddrType = ref(""); // "" (qualquer) | "ddr4" | "ddr5"
 
 const RAM_OPTIONS = [8, 16, 32, 64];
 const STORAGE_OPTIONS = [
@@ -73,6 +74,7 @@ async function buscarConfiguracao() {
     if (cpuBrand.value) params.set("cpuBrand", cpuBrand.value);
     if (storageGb.value) params.set("storageGb", storageGb.value);
     if (storageType.value) params.set("storageType", storageType.value);
+    if (ddrType.value) params.set("ddrType", ddrType.value);
     const resp = await fetch(apiUrl(`/api/build?${params}`));
     const data = await resp.json();
     if (!resp.ok) {
@@ -195,6 +197,25 @@ async function buscarConfiguracao() {
               <input type="checkbox" v-model="dualChannel" />
               Dual channel
             </label>
+          </div>
+        </div>
+
+        <div class="option-group">
+          <span class="option-label">Tipo de memória</span>
+          <div class="segmented">
+            <button type="button" :class="{ active: ddrType === '' }" @click="ddrType = ''">
+              Qualquer
+            </button>
+            <button
+              type="button"
+              :class="{ active: ddrType === 'ddr4' }"
+              @click="ddrType = 'ddr4'"
+            >
+              DDR4
+            </button>
+            <button type="button" :class="{ active: ddrType === 'ddr5' }" @click="ddrType = 'ddr5'">
+              DDR5
+            </button>
           </div>
         </div>
 
