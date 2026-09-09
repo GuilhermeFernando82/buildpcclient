@@ -27,6 +27,7 @@ const dualChannel = ref(false);
 const storageGb = ref(""); // "" = sem preferência de capacidade
 const storageType = ref(""); // "" (qualquer) | "nvme" | "sata"
 const ddrType = ref(""); // "" (qualquer) | "ddr4" | "ddr5"
+const usedParts = ref(false); // aceitar peças usadas (Mercado Livre)
 
 const RAM_OPTIONS = [8, 16, 32, 64];
 const STORAGE_OPTIONS = [
@@ -51,10 +52,19 @@ const currency = new Intl.NumberFormat("pt-BR", {
 // que é onde os códigos ficam configurados.
 const affiliateActive = ref(false);
 
+// A opção de peças usadas só aparece quando o backend tem a credencial do
+// Mercado Livre configurada — sem ela, marcar a caixa não traria usado
+// nenhum e pareceria defeito.
+const usedPartsAvailable = ref(false);
+
 onMounted(async () => {
   try {
     const resp = await fetch(apiUrl("/api/health"));
-    if (resp.ok) affiliateActive.value = Boolean((await resp.json()).affiliate);
+    if (resp.ok) {
+      const health = await resp.json();
+      affiliateActive.value = Boolean(health.affiliate);
+      usedPartsAvailable.value = Boolean(health.usedParts);
+    }
   } catch {
     // Sem resposta do backend o aviso simplesmente não aparece: ele existe
     // para ser honesto sobre monetização, não é essencial pra usar o app.
@@ -91,6 +101,7 @@ async function buscarConfiguracao() {
     if (storageGb.value) params.set("storageGb", storageGb.value);
     if (storageType.value) params.set("storageType", storageType.value);
     if (ddrType.value) params.set("ddrType", ddrType.value);
+    if (usedParts.value) params.set("usedParts", "true");
     const resp = await fetch(apiUrl(`/api/build?${params}`));
     const data = await resp.json();
     if (!resp.ok) {
@@ -276,6 +287,17 @@ async function buscarConfiguracao() {
         </div>
       </div>
 
+      <label v-if="usedPartsAvailable" class="used-toggle">
+        <input type="checkbox" v-model="usedParts" />
+        <span>
+          <strong>Aceitar peças usadas</strong>
+          <small>
+            Inclui anúncios usados do Mercado Livre junto com as lojas. Sem
+            garantia de loja e sem troca — confira o vendedor antes de comprar.
+          </small>
+        </span>
+      </label>
+
       <p v-if="error" class="error-msg">{{ error }}</p>
     </form>
 
@@ -326,6 +348,7 @@ async function buscarConfiguracao() {
           <div class="item-header">
             <span class="item-icon">{{ CATEGORY_ICONS[item.key] || "🔧" }}</span>
             <span class="item-label">{{ item.label }}</span>
+            <span v-if="item.product?.condition === 'used'" class="item-used">usado</span>
             <span v-if="item.product" class="item-store">{{ item.product.store }}</span>
           </div>
           <template v-if="item.product">
@@ -693,6 +716,52 @@ async function buscarConfiguracao() {
   letter-spacing: 0.04em;
   color: var(--text-dim);
   flex: 1;
+}
+
+.used-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.used-toggle input {
+  accent-color: var(--warn);
+  cursor: pointer;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.used-toggle strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.used-toggle small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+  margin-top: 0.15rem;
+}
+
+/* Selo de usado: cor de alerta, não de destaque — a intenção é que o
+   usuário perceba na hora que aquela peça não vem de loja. */
+.item-used {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--warn);
+  background: rgba(210, 153, 34, 0.14);
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
 }
 
 .item-store {
